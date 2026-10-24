@@ -24,8 +24,8 @@ const DEFAULTS = {
   withdrawalStart: "",
   withdrawalRatios: "",
   projects: [
-    { id: 1, name: "Project A", cashflows: ["", "", "", "", ""] },
-    { id: 2, name: "Project B", cashflows: ["", "", "", "", ""] },
+    { id: 1, name: "", cashflows: ["", "", "", "", ""] },
+    { id: 2, name: "", cashflows: ["", "", "", "", ""] },
   ],
 };
 
@@ -43,7 +43,54 @@ const DEMO = {
   ],
 };
 
-const PORTFOLIO_URL = "https://projektmanagement.nadin.dev";
+// Impressum (§ 5 DDG, § 18 Abs. 1 MStV) and privacy notice, German on purpose.
+const OWNER = {
+  name: "Nadin Okil",
+  street: "[Straße und Hausnummer]", // TODO: ladungsfähige Anschrift
+  city: "[PLZ Ort]",
+  email: "nadinokil.contact@gmail.com",
+};
+
+function LegalModal({ page, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const h = { fontSize: 15, margin: "16px 0 4px" };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}>
+      <div role="dialog" aria-modal="true" lang="de" onClick={(e) => e.stopPropagation()}
+        style={{ background: "#fff", color: ink, borderRadius: 8, maxWidth: 640, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 22, fontSize: 14, lineHeight: 1.6 }}>
+        {page === "imprint" ? (
+          <>
+            <h2 style={{ marginTop: 0, fontSize: 20 }}>Impressum</h2>
+            <p>Angaben gemäß § 5 DDG und § 18 Abs. 1 MStV</p>
+            <p>{OWNER.name}<br />{OWNER.street}<br />{OWNER.city}</p>
+            <p>E-Mail: <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a></p>
+            <p>Privates, nicht-kommerzielles Projekt ohne Werbung, Einnahmen oder Benutzerkonten. Berechnungen ohne Gewähr.</p>
+          </>
+        ) : (
+          <>
+            <h2 style={{ marginTop: 0, fontSize: 20 }}>Datenschutzerklärung</h2>
+            <h3 style={h}>Verantwortlich</h3>
+            <p>{OWNER.name}, {OWNER.street}, {OWNER.city}, {OWNER.email}</p>
+            <h3 style={h}>Hosting</h3>
+            <p>Die Seite wird von Vercel Inc. (340 S Lemon Ave #4133, Walnut, CA 91789, USA) ausgeliefert. Dabei verarbeitet Vercel technisch notwendige Daten (IP-Adresse, Zeitpunkt, angeforderte Datei, Browser-Kennung) in Server-Logs (Art. 6 Abs. 1 lit. f DSGVO). Vercel ist unter dem EU-US Data Privacy Framework zertifiziert.</p>
+            <h3 style={h}>Ihre Eingaben</h3>
+            <p>Es gibt kein Login, keine Datenbank, keine Cookies und kein Tracking. Ihre Eingaben existieren nur auf der geöffneten Seite, werden nicht gespeichert oder übertragen und sind nach Schließen oder Neuladen weg.</p>
+            <h3 style={h}>Ihre Rechte</h3>
+            <p>Auskunft, Berichtigung, Löschung, Einschränkung, Widerspruch und Datenübertragbarkeit (Art. 15–21 DSGVO) sowie Beschwerde bei einer Aufsichtsbehörde (Art. 77 DSGVO).</p>
+          </>
+        )}
+        <button type="button" onClick={onClose} autoFocus
+          style={{ marginTop: 12, padding: "6px 14px", background: gold, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+          Schließen
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // Shows only the row format, no numbers, so it never gets mistaken for real data
 const EXAMPLE_TEXT =
@@ -241,6 +288,7 @@ export default function VofiToolSimple() {
   const [importMessage, setImportMessage] = useState("");
   const [reportText, setReportText] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
+  const [legalPage, setLegalPage] = useState(null);
 
   function changePeriods(newN) {
     const nn = Math.max(2, Math.min(10, newN));
@@ -253,8 +301,7 @@ export default function VofiToolSimple() {
   }
 
   function addProject() {
-    const letter = String.fromCharCode(65 + projects.length);
-    setProjects([...projects, { id: Date.now(), name: `Project ${letter}`, cashflows: resize([], n) }]);
+    setProjects([...projects, { id: Date.now(), name: "", cashflows: resize([], n) }]);
   }
   function removeProject(id) {
     setProjects(projects.filter((p) => p.id !== id));
@@ -347,7 +394,7 @@ export default function VofiToolSimple() {
     const s = sollMode === "flat" ? Array(n - 1).fill(Number(sollFlat)) : soll;
 
     const allOptions = [
-      ...projects.map((p) => ({ name: p.name, cashflows: p.cashflows })),
+      ...projects.map((p, i) => ({ name: p.name.trim() || `Project ${String.fromCharCode(65 + i)}`, cashflows: p.cashflows })),
       { name: "Do nothing", cashflows: resize([], n) },
     ];
     const computed = allOptions.map((p) => ({
@@ -380,7 +427,6 @@ export default function VofiToolSimple() {
 
   return (
     <form autoComplete="off" onSubmit={(e) => e.preventDefault()} style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto", padding: 24, color: ink }}>
-      <a href={PORTFOLIO_URL} style={{ display: "inline-block", color: ink, fontSize: 14, marginBottom: 14 }}>← Back to home</a>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4, gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 24, margin: 0 }}>Complete Financial Plan (VOFI)</h1>
         <div style={{ display: "flex", gap: 8 }}>
@@ -494,6 +540,7 @@ export default function VofiToolSimple() {
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             <input
               value={p.name}
+              placeholder={`Project ${String.fromCharCode(65 + projects.indexOf(p))}`}
               onChange={(e) => setProjects(projects.map((x) => (x.id === p.id ? { ...x, name: e.target.value } : x)))}
               style={{ width: 120, padding: 4, fontWeight: 600, border: `1px solid ${line}`, borderRadius: 4 }}
             />
@@ -612,11 +659,12 @@ export default function VofiToolSimple() {
       <footer style={{ marginTop: 40, paddingTop: 16, borderTop: `1px solid ${line}`, fontSize: 13, color: muted, display: "flex", flexWrap: "wrap", gap: "8px 18px", justifyContent: "space-between" }}>
         <span>Nothing is saved: your inputs exist only on this page and are gone when you close or reload it. Everyone starts with an empty form.</span>
         <span style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <a href={`${PORTFOLIO_URL}/impressum`} style={{ color: muted }}>Impressum</a>
-          <a href={`${PORTFOLIO_URL}/datenschutz`} style={{ color: muted }}>Datenschutz</a>
+          <button type="button" onClick={() => setLegalPage("imprint")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Impressum</button>
+          <button type="button" onClick={() => setLegalPage("privacy")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Datenschutz</button>
           <span>made by Nadin Okil</span>
         </span>
       </footer>
+      {legalPage && <LegalModal page={legalPage} onClose={() => setLegalPage(null)} />}
     </form>
   );
 }
