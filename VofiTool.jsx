@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // Colors
 const gold = "#A9832A";
@@ -28,6 +28,22 @@ const DEFAULTS = {
     { id: 2, name: "Project B", cashflows: ["", "", "", "", ""] },
   ],
 };
+
+// Fictional example values for "Try with demo data". Illustrative only.
+const DEMO = {
+  n: 5,
+  habenFlat: 3,
+  sollFlat: 8,
+  basePayments: [1000, 200, 200, 200, 200],
+  creditLimit: "500",
+  withdrawalFixed: [0, 150, 150, 150, 150],
+  projects: [
+    { id: 1, name: "Demo: Machine A", cashflows: [-1200, 400, 400, 400, 400] },
+    { id: 2, name: "Demo: Machine B", cashflows: [-800, 100, 300, 400, 500] },
+  ],
+};
+
+const PORTFOLIO_URL = "https://projektmanagement.nadin.dev";
 
 // Shows only the row format, no numbers, so it never gets mistaken for real data
 const EXAMPLE_TEXT =
@@ -176,6 +192,7 @@ function ModeToggle({ value, onChange, options }) {
     <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
       {options.map((o) => (
         <button
+          type="button"
           key={o.value}
           onClick={() => onChange(o.value)}
           style={{
@@ -266,6 +283,30 @@ export default function VofiToolSimple() {
     setCopyMessage("");
   }
 
+  function loadDemo() {
+    resetAll();
+    setN(DEMO.n);
+    setNInput(String(DEMO.n));
+    setHabenMode("flat");
+    setHabenFlat(DEMO.habenFlat);
+    setSollMode("flat");
+    setSollFlat(DEMO.sollFlat);
+    setBasePayments(DEMO.basePayments.slice());
+    setCreditLimit(DEMO.creditLimit);
+    setWithdrawalMode("fixed");
+    setWithdrawalFixed(DEMO.withdrawalFixed.slice());
+    setProjects(DEMO.projects.map((p) => ({ ...p, cashflows: p.cashflows.slice() })));
+  }
+
+  // Every visit starts empty: nothing is stored, and if the browser restores
+  // this page from its back/forward cache (which would keep the previous
+  // person's inputs), reload it fresh.
+  useEffect(() => {
+    const onShow = (e) => { if (e.persisted) window.location.reload(); };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
   function runImport() {
     const found = parseImportText(importText);
     const newN = Math.max(
@@ -338,15 +379,26 @@ export default function VofiToolSimple() {
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto", padding: 24, color: ink }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+    <form autoComplete="off" onSubmit={(e) => e.preventDefault()} style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto", padding: 24, color: ink }}>
+      <a href={PORTFOLIO_URL} style={{ display: "inline-block", color: ink, fontSize: 14, marginBottom: 14 }}>← Back to home</a>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4, gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 24, margin: 0 }}>Complete Financial Plan (VOFI)</h1>
-        <button
-          onClick={resetAll}
-          style={{ padding: "6px 14px", border: `1px solid ${line}`, borderRadius: 6, background: "#fff", color: muted, cursor: "pointer", fontSize: 13 }}
-        >
-          Reset
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={loadDemo}
+            style={{ padding: "6px 14px", border: `1px solid ${gold}`, borderRadius: 6, background: "#fff", color: gold, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+          >
+            Try with demo data – no login
+          </button>
+          <button
+            type="button"
+            onClick={resetAll}
+            style={{ padding: "6px 14px", border: `1px solid ${line}`, borderRadius: 6, background: "#fff", color: muted, cursor: "pointer", fontSize: 13 }}
+          >
+            Reset
+          </button>
+        </div>
       </div>
       <p style={{ color: muted, marginTop: 4, marginBottom: 20 }}>
         Compares investment projects under a deposit rate and a borrowing rate, and ranks them by final account balance.
@@ -368,6 +420,7 @@ export default function VofiToolSimple() {
           placeholder="Paste your table here..."
         />
         <button
+          type="button"
           onClick={runImport}
           style={{ marginTop: 8, padding: "6px 14px", background: gold, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
         >
@@ -448,17 +501,17 @@ export default function VofiToolSimple() {
               values={p.cashflows}
               onChange={(cf) => setProjects(projects.map((x) => (x.id === p.id ? { ...x, cashflows: cf } : x)))}
             />
-            <button onClick={() => removeProject(p.id)} style={{ color: red, border: "none", background: "none", cursor: "pointer" }}>
+            <button type="button" onClick={() => removeProject(p.id)} style={{ color: red, border: "none", background: "none", cursor: "pointer" }}>
               remove
             </button>
           </div>
         ))}
-        <button onClick={addProject} style={{ padding: "6px 12px", border: `1px dashed ${gold}`, borderRadius: 6, background: "none", color: gold, cursor: "pointer" }}>
+        <button type="button" onClick={addProject} style={{ padding: "6px 12px", border: `1px dashed ${gold}`, borderRadius: 6, background: "none", color: gold, cursor: "pointer" }}>
           + Add project
         </button>
       </div>
 
-      <button onClick={calculate} style={{ padding: "10px 20px", background: gold, color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}>
+      <button type="button" onClick={calculate} style={{ padding: "10px 20px", background: gold, color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}>
         Calculate
       </button>
 
@@ -472,6 +525,7 @@ export default function VofiToolSimple() {
               <div>Final balance: <strong style={{ color: green }}>{fmt(winner.balance[n - 1])}</strong></div>
             </div>
             <button
+              type="button"
               onClick={showSavePanel}
               style={{ padding: "10px 16px", border: `1px solid ${gold}`, borderRadius: 6, background: "#fff", color: gold, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}
             >
@@ -492,6 +546,7 @@ export default function VofiToolSimple() {
                 style={{ width: "100%", padding: 8, border: `1px solid ${line}`, borderRadius: 6, fontFamily: "ui-monospace, monospace", fontSize: 12 }}
               />
               <button
+                type="button"
                 onClick={copyReport}
                 style={{ marginTop: 8, padding: "6px 14px", background: gold, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
               >
@@ -553,6 +608,15 @@ export default function VofiToolSimple() {
           ))}
         </div>
       )}
-    </div>
+
+      <footer style={{ marginTop: 40, paddingTop: 16, borderTop: `1px solid ${line}`, fontSize: 13, color: muted, display: "flex", flexWrap: "wrap", gap: "8px 18px", justifyContent: "space-between" }}>
+        <span>Nothing is saved: your inputs exist only on this page and are gone when you close or reload it. Everyone starts with an empty form.</span>
+        <span style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          <a href={`${PORTFOLIO_URL}/impressum`} style={{ color: muted }}>Impressum</a>
+          <a href={`${PORTFOLIO_URL}/datenschutz`} style={{ color: muted }}>Datenschutz</a>
+          <span>made by Nadin Okil</span>
+        </span>
+      </footer>
+    </form>
   );
 }
