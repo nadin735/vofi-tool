@@ -93,13 +93,8 @@ function LegalModal({ page, onClose }) {
 }
 
 // Shows only the row format, no numbers, so it never gets mistaken for real data
-const EXAMPLE_TEXT =
-  "Base payments ...\n" +
-  "Investment A ...\n" +
-  "Investment B ...\n" +
-  "Deposit rate ...\n" +
-  "Borrowing rate ...\n" +
-  "Credit limit ...";
+const exampleText = () =>
+  [t("Base payments") + " ...", t("Investment A") + " ...", t("Investment B") + " ...", t("Deposit rate") + " ...", t("Borrowing rate") + " ...", t("Credit limit") + " ..."].join("\n");
 
 // Fill/trim an array to a fixed length
 function resize(arr, len, fill = "") {
@@ -189,26 +184,118 @@ function computeAccountBalance(n, basePayments, withdrawals, cashflows, haben, s
   return { balance, feasible, lowestPoint };
 }
 
+// Interface texts: English is the key, German the translation. Legal pages are German only, on purpose.
+const DE = {
+ "Base payments": "Basiszahlungen", "Investment A": "Investition A", "Investment B": "Investition B", "Deposit rate": "Habenzins", "Borrowing rate": "Sollzins", "Credit limit": "Kreditlimit",
+ "Account balance over time": "Kontostand im Zeitverlauf",
+ "Period t": "Periode t",
+ "Complete Financial Plan (VOFI)": "Vollständiger Finanzplan (VOFI)",
+ "Try with demo data – no login": "Mit Beispieldaten testen, ohne Anmeldung",
+ "Reset": "Zurücksetzen",
+ "Compares investment projects under a deposit rate and a borrowing rate, and ranks them by final account balance.": "Vergleicht Investitionsprojekte bei einem Habenzins und einem Sollzins und ordnet sie nach dem Endkontostand.",
+ "How it works": "So funktioniert es",
+ "Enter the time horizon, your base payments, the deposit rate (interest on a positive balance) and the borrowing rate (interest on a negative balance).": "Geben Sie den Zeithorizont, Ihre Basiszahlungen, den Habenzins (Zins auf ein positives Guthaben) und den Sollzins (Zins auf einen negativen Kontostand) ein.",
+ "Add each project's cash flows. Period 0 is usually the investment, so it is negative.": "Tragen Sie die Zahlungen jedes Projekts ein. Periode 0 ist meist die Investition und damit negativ.",
+ "Press Calculate. The account is built period by period: the balance of the previous period earns the deposit rate if it is positive and costs the borrowing rate if it is negative. Then the period's payments, cash flows and withdrawals are added.": "Klicken Sie auf Berechnen. Das Konto wird Periode für Periode aufgebaut: Der Stand der Vorperiode wird mit dem Habenzins verzinst, wenn er positiv ist, und mit dem Sollzins belastet, wenn er negativ ist. Danach kommen Basiszahlungen, Zahlungen des Projekts und Entnahmen der Periode hinzu.",
+ "Projects are ranked by final balance. A project that breaks the credit limit is marked as not feasible. \"Do nothing\" is the reference.": "Die Projekte werden nach dem Endkontostand geordnet. Ein Projekt, das das Kreditlimit überschreitet, gilt als nicht umsetzbar. „Nichts tun“ ist die Vergleichsbasis.",
+ "Guided mode": "Geführter Modus",
+ ": one step at a time": ": ein Schritt nach dem anderen",
+ "Paste a table copied from a PDF or worksheet, one row per line, label first, then the numbers. Format:": "Fügen Sie eine aus PDF oder Tabelle kopierte Tabelle ein, eine Zeile pro Eintrag, zuerst die Bezeichnung, dann die Zahlen. Format:",
+ "Fill in from text": "Aus Text übernehmen",
+ "Time horizon (periods)": "Zeithorizont (Perioden)",
+ "Credit limit (leave empty for unlimited)": "Kreditlimit (leer lassen für unbegrenzt)",
+ "Base payments per period": "Basiszahlungen pro Periode",
+ "Deposit rate in %": "Habenzins in %",
+ "Borrowing rate in %": "Sollzins in %",
+ "Withdrawals": "Entnahmen",
+ "Projects, cash flows per period": "Projekte, Zahlungen pro Periode",
+ "remove": "entfernen",
+ "+ Add project": "+ Projekt hinzufügen",
+ "Please check your inputs:": "Bitte prüfen Sie Ihre Eingaben:",
+ "Calculate": "Berechnen",
+ "Final balance:": "Endkontostand:",
+ "Every option goes below the credit limit. See the status column for the lowest balances.": "Jede Option unterschreitet das Kreditlimit. Die niedrigsten Kontostände stehen in der Spalte Status.",
+ "Save results": "Ergebnisse speichern",
+ "Tap inside the box, select all, and copy, or use the button below.": "Tippen Sie in das Feld, wählen Sie alles aus und kopieren Sie, oder nutzen Sie die Schaltfläche darunter.",
+ "Copy to clipboard": "In die Zwischenablage kopieren",
+ "Option": "Option",
+ "Final balance": "Endkontostand",
+ "vs. Do nothing": "gegenüber Nichts tun",
+ "Lowest balance": "Niedrigster Stand",
+ "Status": "Status",
+ "Cash flow": "Zahlung",
+ "Withdrawal": "Entnahme",
+ "Balance": "Kontostand",
+ "Back": "Zurück",
+ "Next": "Weiter",
+ "Nothing is saved: your inputs exist only on this page and are gone when you close or reload it. Everyone starts with an empty form.": "Nichts wird gespeichert: Ihre Eingaben existieren nur auf dieser Seite und sind nach dem Schließen oder Neuladen weg. Jeder startet mit einem leeren Formular.",
+ "made by Nadin Okil": "von Nadin Okil",
+ "Best alternative": "Beste Alternative",
+ "No feasible option": "Keine umsetzbare Option",
+ "Basics": "Grundlagen",
+ "Projects": "Projekte",
+ "Result": "Ergebnis",
+ "Steps": "Schritte",
+ "Set the time horizon, credit limit, base payments and the two interest rates.": "Legen Sie Zeithorizont, Kreditlimit, Basiszahlungen und die beiden Zinssätze fest.",
+ "Optional: money you take out of the account each period.": "Optional: Geld, das Sie in jeder Periode vom Konto entnehmen.",
+ "Enter the cash flows of every project. Period 0 is usually the investment (negative).": "Tragen Sie die Zahlungen jedes Projekts ein. Periode 0 ist meist die Investition (negativ).",
+ "Check the inputs, then press Calculate.": "Prüfen Sie die Eingaben und klicken Sie dann auf Berechnen.",
+ "Flat": "Gleichbleibend",
+ "Per period": "Pro Periode",
+ "Ratio": "Verhältnis",
+ "Fixed values": "Feste Werte",
+ "Paste your table here...": "Tabelle hier einfügen ...",
+ "start": "Start",
+ "Enter the deposit rate": "Geben Sie den Habenzins ein",
+ "Enter the borrowing rate": "Geben Sie den Sollzins ein",
+ " for every period": " für jede Periode",
+ ". 0 is allowed.": ". 0 ist erlaubt.",
+ "Withdrawals by ratio need a start value and at least one ratio, or switch to fixed values.": "Entnahmen nach Verhältnis brauchen einen Startwert und mindestens ein Verhältnis, oder wechseln Sie zu festen Werten.",
+ "The credit limit must be a number of 0 or more, or empty for unlimited.": "Das Kreditlimit muss eine Zahl ab 0 sein oder leer für unbegrenzt.",
+ "Enter cash flows for at least one project.": "Tragen Sie Zahlungen für mindestens ein Projekt ein.",
+ "Copied to clipboard.": "In die Zwischenablage kopiert.",
+ "Could not copy automatically, please select the text above and copy it manually.": "Automatisches Kopieren nicht möglich. Markieren Sie den Text oben und kopieren Sie ihn von Hand.",
+ "No recognizable rows found, check the format above.": "Keine erkennbaren Zeilen gefunden, prüfen Sie das Format oben.",
+ "Filled in": "Übernommen",
+ "base payments": "Basiszahlungen",
+ "deposit rate": "Habenzins",
+ "borrowing rate": "Sollzins",
+ "withdrawals": "Entnahmen",
+ "credit limit": "Kreditlimit",
+ "project row(s)": "Projektzeile(n)",
+ "Do nothing": "Nichts tun",
+ "Project": "Projekt",
+ "VOFI results": "VOFI Ergebnisse",
+ "Ranking": "Rangfolge",
+ "feasible": "umsetzbar",
+ "credit limit exceeded": "Kreditlimit überschritten",
+ "n/a": "k. A.",
+ "Credit limit ...": "Kreditlimit ...",
+ "Language": "Sprache"
+};
+let LANG = "en";
+const t = (s) => (LANG === "de" ? DE[s] ?? s : s);
+
 function fmt(x) {
-  return x.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  return x.toLocaleString(LANG === "de" ? "de-DE" : "en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 }
 
 // Builds a plain text report from the results
 function buildReportText(n, ranked, computed, withdrawals) {
   const lines = [];
-  lines.push("VOFI results");
+  lines.push(t("VOFI results"));
   lines.push("");
-  lines.push("Ranking");
+  lines.push(t("Ranking"));
   ranked.forEach((r) => {
-    lines.push(`${r.name}\t${r.feasible ? fmt(r.balance[n - 1]) : "n/a"}\t${r.feasible ? "feasible" : `credit limit exceeded (${fmt(r.lowestPoint)})`}`);
+    lines.push(`${r.name}\t${r.feasible ? fmt(r.balance[n - 1]) : t("n/a")}\t${r.feasible ? t("feasible") : `${t("credit limit exceeded")} (${fmt(r.lowestPoint)})`}`);
   });
   lines.push("");
   computed.forEach((r) => {
     lines.push(r.name);
     lines.push("t\t" + r.balance.map((_, i) => i).join("\t"));
-    lines.push("Cash flow\t" + r.cashflows.map(fmt).join("\t"));
-    lines.push("Withdrawal\t" + withdrawals.map(fmt).join("\t"));
-    lines.push("Balance\t" + r.balance.map(fmt).join("\t"));
+    lines.push(t("Cash flow") + "\t" + r.cashflows.map(fmt).join("\t"));
+    lines.push(t("Withdrawal") + "\t" + withdrawals.map(fmt).join("\t"));
+    lines.push(t("Balance") + "\t" + r.balance.map(fmt).join("\t"));
     lines.push("");
   });
   return lines.join("\n");
@@ -233,7 +320,7 @@ function BalanceChart({ computed, n }) {
   const summary = `Account balance over ${n} periods. ` + computed.map((r) => `${r.name}: ${fmt(r.balance[0])} at t0, ${fmt(r.balance[n - 1])} at t${n - 1}`).join("; ") + ".";
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>Account balance over time</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>{t("Account balance over time")}</div>
       <div style={{ overflowX: "auto" }}>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} style={{ width: "100%", minWidth: 560, height: "auto", display: "block", border: `1px solid ${line}`, borderRadius: 8, background: "#fff" }}>
         {ticks.map((v, i) => (
@@ -246,7 +333,7 @@ function BalanceChart({ computed, n }) {
         {Array.from({ length: n }, (_, t) => (
           <text key={t} x={x(t)} y={H - B + 18} textAnchor="middle" fontSize="11" fill={muted}>{t}</text>
         ))}
-        <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" fontSize="11" fill={muted}>Period t</text>
+        <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" fontSize="11" fill={muted}>{t("Period t")}</text>
         {lines.map(({ r, c }) => (
           <g key={r.name}>
             <polyline fill="none" stroke={c} strokeWidth={r.baseline ? 1.75 : 2.5} strokeDasharray={r.baseline ? "5 4" : undefined} opacity={r.feasible ? 1 : 0.55} points={r.balance.map((v, t) => `${x(t)},${y(v)}`).join(" ")} />
@@ -259,7 +346,7 @@ function BalanceChart({ computed, n }) {
         {lines.map(({ r, c }) => (
           <span key={r.name} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <svg width="22" height="8" aria-hidden="true"><line x1="0" x2="22" y1="4" y2="4" stroke={c} strokeWidth="3" strokeDasharray={r.baseline ? "5 3" : undefined} /></svg>
-            {r.name}{r.feasible ? "" : " (credit limit exceeded)"}
+            {r.name}{r.feasible ? "" : ` (${t("credit limit exceeded")})`}
           </span>
         ))}
       </div>
@@ -343,6 +430,12 @@ export default function VofiToolSimple() {
   const [reportText, setReportText] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
   const [legalPage, setLegalPage] = useState(null);
+  const [lang, setLang] = useState(() => (typeof navigator !== "undefined" && /^de/i.test(navigator.language || "") ? "de" : "en"));
+  LANG = lang;
+  const [guided, setGuided] = useState(false);
+  const [step, setStep] = useState(1);
+  const vis = (k) => (!guided || step === k ? undefined : { display: "none" });
+  const STEP_NAMES = [t("Basics"), t("Withdrawals"), t("Projects"), t("Result")];
 
   function changePeriods(newN) {
     const nn = Math.max(2, Math.min(10, newN));
@@ -403,6 +496,7 @@ export default function VofiToolSimple() {
   // Every visit starts empty: nothing is stored, and if the browser restores
   // this page from its back/forward cache (which would keep the previous
   // person's inputs), reload it fresh.
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
   useEffect(() => {
     const onShow = (e) => { if (e.persisted) window.location.reload(); };
     window.addEventListener("pageshow", onShow);
@@ -435,26 +529,26 @@ export default function VofiToolSimple() {
       setProjects(found.projects.map((p) => ({ ...p, cashflows: resize(p.cashflows, newN) })));
     }
     const parts = [];
-    if (found.basePayments) parts.push("base payments");
-    if (found.haben) parts.push("deposit rate");
-    if (found.soll) parts.push("borrowing rate");
-    if (found.withdrawals) parts.push("withdrawals");
-    if (found.creditLimit !== null) parts.push("credit limit");
-    if (found.projects.length) parts.push(`${found.projects.length} project row(s)`);
-    setImportMessage(parts.length ? `Filled in: ${parts.join(", ")}.` : "No recognizable rows found, check the format above.");
+    if (found.basePayments) parts.push(t("base payments"));
+    if (found.haben) parts.push(t("deposit rate"));
+    if (found.soll) parts.push(t("borrowing rate"));
+    if (found.withdrawals) parts.push(t("withdrawals"));
+    if (found.creditLimit !== null) parts.push(t("credit limit"));
+    if (found.projects.length) parts.push(`${found.projects.length} ${t("project row(s)")}`);
+    setImportMessage(parts.length ? `${t("Filled in")}: ${parts.join(", ")}.` : t("No recognizable rows found, check the format above."));
   }
 
   // Checks the inputs before calculating, so an empty form never shows a "best alternative".
   function validate() {
     const problems = [];
     const blank = (v) => v === "" || v === null || v === undefined || Number.isNaN(Number(v));
-    if (habenMode === "flat" ? blank(habenFlat) : haben.some(blank)) problems.push("Enter the deposit rate" + (habenMode === "flat" ? "" : " for every period") + ". 0 is allowed.");
-    if (sollMode === "flat" ? blank(sollFlat) : soll.some(blank)) problems.push("Enter the borrowing rate" + (sollMode === "flat" ? "" : " for every period") + ". 0 is allowed.");
+    if (habenMode === "flat" ? blank(habenFlat) : haben.some(blank)) problems.push(t("Enter the deposit rate") + (habenMode === "flat" ? "" : t(" for every period")) + t(". 0 is allowed."));
+    if (sollMode === "flat" ? blank(sollFlat) : soll.some(blank)) problems.push(t("Enter the borrowing rate") + (sollMode === "flat" ? "" : t(" for every period")) + t(". 0 is allowed."));
     if (withdrawalMode === "ratio" && (blank(withdrawalStart) || withdrawalRatios.trim() === "")) {
-      problems.push("Withdrawals by ratio need a start value and at least one ratio, or switch to fixed values.");
+      problems.push(t("Withdrawals by ratio need a start value and at least one ratio, or switch to fixed values."));
     }
-    if (creditLimit !== "" && (Number.isNaN(Number(creditLimit)) || Number(creditLimit) < 0)) problems.push("The credit limit must be a number of 0 or more, or empty for unlimited.");
-    if (!projects.some((p) => p.cashflows.some((v) => v !== "" && !Number.isNaN(Number(v))))) problems.push("Enter cash flows for at least one project.");
+    if (creditLimit !== "" && (Number.isNaN(Number(creditLimit)) || Number(creditLimit) < 0)) problems.push(t("The credit limit must be a number of 0 or more, or empty for unlimited."));
+    if (!projects.some((p) => p.cashflows.some((v) => v !== "" && !Number.isNaN(Number(v))))) problems.push(t("Enter cash flows for at least one project."));
     return problems;
   }
 
@@ -473,8 +567,8 @@ export default function VofiToolSimple() {
     const s = sollMode === "flat" ? Array(n - 1).fill(Number(sollFlat)) : soll;
 
     const allOptions = [
-      ...projects.map((p, i) => ({ name: p.name.trim() || `Project ${String.fromCharCode(65 + i)}`, cashflows: p.cashflows })),
-      { name: "Do nothing", cashflows: resize([], n), baseline: true },
+      ...projects.map((p, i) => ({ name: p.name.trim() || `${t("Project")} ${String.fromCharCode(65 + i)}`, cashflows: p.cashflows })),
+      { name: t("Do nothing"), cashflows: resize([], n), baseline: true },
     ];
     const computed = allOptions.map((p) => ({
       name: p.name,
@@ -500,67 +594,98 @@ export default function VofiToolSimple() {
   async function copyReport() {
     try {
       await navigator.clipboard.writeText(reportText);
-      setCopyMessage("Copied to clipboard.");
+      setCopyMessage(t("Copied to clipboard."));
     } catch {
-      setCopyMessage("Could not copy automatically, please select the text above and copy it manually.");
+      setCopyMessage(t("Could not copy automatically, please select the text above and copy it manually."));
     }
   }
 
   return (
     <form autoComplete="off" onSubmit={(e) => e.preventDefault()} style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto", padding: 24, color: ink }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4, gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>Complete Financial Plan (VOFI)</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <h1 style={{ fontSize: 24, margin: 0 }}>{t("Complete Financial Plan (VOFI)")}</h1>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div role="group" aria-label={t("Language")} style={{ display: "flex", border: `1px solid ${line}`, borderRadius: 6, overflow: "hidden" }}>
+            {["de", "en"].map((l) => (
+              <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setLang(l); document.documentElement.lang = l; }}
+                style={{ padding: "6px 10px", border: "none", background: lang === l ? gold : "#fff", color: lang === l ? "#fff" : muted, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{l.toUpperCase()}</button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={loadDemo}
             style={{ padding: "6px 14px", border: `1px solid ${gold}`, borderRadius: 6, background: "#fff", color: gold, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
           >
-            Try with demo data – no login
+            {t("Try with demo data – no login")}
           </button>
           <button
             type="button"
             onClick={resetAll}
             style={{ padding: "6px 14px", border: `1px solid ${line}`, borderRadius: 6, background: "#fff", color: muted, cursor: "pointer", fontSize: 13 }}
           >
-            Reset
+            {t("Reset")}
           </button>
         </div>
       </div>
       <p style={{ color: muted, marginTop: 4, marginBottom: 20 }}>
-        Compares investment projects under a deposit rate and a borrowing rate, and ranks them by final account balance.
+        {t("Compares investment projects under a deposit rate and a borrowing rate, and ranks them by final account balance.")}
       </p>
       <details style={{ marginBottom: 20, fontSize: 14, color: ink }}>
-        <summary style={{ cursor: "pointer", color: gold, fontWeight: 600 }}>How it works</summary>
+        <summary style={{ cursor: "pointer", color: gold, fontWeight: 600 }}>{t("How it works")}</summary>
         <ol style={{ margin: "8px 0 0", paddingLeft: 20, color: muted, lineHeight: 1.6 }}>
-          <li>Enter the time horizon, your base payments, the deposit rate (interest on a positive balance) and the borrowing rate (interest on a negative balance).</li>
-          <li>Add each project's cash flows. Period 0 is usually the investment, so it is negative.</li>
-          <li>Press Calculate. The account is built period by period: the balance of the previous period earns the deposit rate if it is positive and costs the borrowing rate if it is negative. Then the period's payments, cash flows and withdrawals are added.</li>
-          <li>Projects are ranked by final balance. A project that breaks the credit limit is marked as not feasible. "Do nothing" is the reference.</li>
+          <li>{t("Enter the time horizon, your base payments, the deposit rate (interest on a positive balance) and the borrowing rate (interest on a negative balance).")}</li>
+          <li>{t("Add each project's cash flows. Period 0 is usually the investment, so it is negative.")}</li>
+          <li>{t("Press Calculate. The account is built period by period: the balance of the previous period earns the deposit rate if it is positive and costs the borrowing rate if it is negative. Then the period's payments, cash flows and withdrawals are added.")}</li>
+          <li>{t("Projects are ranked by final balance. A project that breaks the credit limit is marked as not feasible. \"Do nothing\" is the reference.")}</li>
         </ol>
       </details>
 
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer" }}>
+          <input type="checkbox" checked={guided} onChange={(e) => { setGuided(e.target.checked); setStep(1); }} />
+          <span><strong>{t("Guided mode")}</strong>{t(": one step at a time")}</span>
+        </label>
+        {guided && (
+          <div style={{ marginTop: 10 }}>
+            <ol aria-label={t("Steps")} style={{ display: "flex", gap: 8, listStyle: "none", padding: 0, margin: 0, flexWrap: "wrap" }}>
+              {STEP_NAMES.map((nm, i) => (
+                <li key={nm}>
+                  <button type="button" onClick={() => setStep(i + 1)} aria-current={step === i + 1 ? "step" : undefined}
+                    style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${step === i + 1 ? gold : line}`, background: step === i + 1 ? gold : "#fff", color: step === i + 1 ? "#fff" : ink, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                    {i + 1}. {nm}
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <p style={{ color: muted, fontSize: 13, margin: "8px 0 0" }}>
+              {t(["Set the time horizon, credit limit, base payments and the two interest rates.", "Optional: money you take out of the account each period.", "Enter the cash flows of every project. Period 0 is usually the investment (negative).", "Check the inputs, then press Calculate."][step - 1])}
+            </p>
+          </div>
+        )}
+      </div>
+
+<div style={vis(1)}>
       {/* Import */}
       <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
         <div style={{ color: muted, fontSize: 13, marginBottom: 6 }}>
-          Paste a table copied from a PDF or worksheet, one row per line, label first, then the numbers. Format:
+          {t("Paste a table copied from a PDF or worksheet, one row per line, label first, then the numbers. Format:")}
         </div>
         <div style={{ fontSize: 12, color: muted, marginBottom: 8, fontFamily: "ui-monospace, monospace", whiteSpace: "pre-line" }}>
-          {EXAMPLE_TEXT}
+          {exampleText()}
         </div>
         <textarea
           value={importText}
           onChange={(e) => setImportText(e.target.value)}
           rows={5}
           style={{ width: "100%", padding: 8, border: `1px solid ${line}`, borderRadius: 6, fontFamily: "ui-monospace, monospace", fontSize: 13 }}
-          placeholder="Paste your table here..."
+          placeholder={t("Paste your table here...")}
         />
         <button
           type="button"
           onClick={runImport}
           style={{ marginTop: 8, padding: "6px 14px", background: gold, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
         >
-          Fill in from text
+          {t("Fill in from text")}
         </button>
         {importMessage && <div style={{ marginTop: 8, fontSize: 13, color: green }}>{importMessage}</div>}
       </div>
@@ -569,26 +694,26 @@ export default function VofiToolSimple() {
       <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <label>
-            Time horizon (periods)
+            {t("Time horizon (periods)")}
             <input type="number" value={nInput} placeholder="5"
               onChange={(e) => { setNInput(e.target.value); if (e.target.value !== "") changePeriods(Number(e.target.value)); }}
               style={{ display: "block", width: 80, padding: 4, marginTop: 4 }} />
           </label>
           <label>
-            Credit limit (leave empty for unlimited)
+            {t("Credit limit (leave empty for unlimited)")}
             <input value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)}
               style={{ display: "block", width: 100, padding: 4, marginTop: 4 }} />
           </label>
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>Base payments per period</div>
+          <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>{t("Base payments per period")}</div>
           <NumberRow values={basePayments} onChange={setBasePayments} />
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>Deposit rate in %</div>
-          <ModeToggle value={habenMode} onChange={setHabenMode} options={[{ value: "flat", label: "Flat" }, { value: "perPeriod", label: "Per period" }]} />
+          <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>{t("Deposit rate in %")}</div>
+          <ModeToggle value={habenMode} onChange={setHabenMode} options={[{ value: "flat", label: t("Flat") }, { value: "perPeriod", label: t("Per period") }]} />
           {habenMode === "flat" ? (
             <input type="number" value={habenFlat} onChange={(e) => setHabenFlat(e.target.value)} style={{ width: 80, padding: 4 }} />
           ) : (
@@ -597,8 +722,8 @@ export default function VofiToolSimple() {
         </div>
 
         <div>
-          <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>Borrowing rate in %</div>
-          <ModeToggle value={sollMode} onChange={setSollMode} options={[{ value: "flat", label: "Flat" }, { value: "perPeriod", label: "Per period" }]} />
+          <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>{t("Borrowing rate in %")}</div>
+          <ModeToggle value={sollMode} onChange={setSollMode} options={[{ value: "flat", label: t("Flat") }, { value: "perPeriod", label: t("Per period") }]} />
           {sollMode === "flat" ? (
             <input type="number" value={sollFlat} onChange={(e) => setSollFlat(e.target.value)} style={{ width: 80, padding: 4 }} />
           ) : (
@@ -607,30 +732,36 @@ export default function VofiToolSimple() {
         </div>
       </div>
 
+</div>
+
+      <div style={vis(2)}>
       {/* Withdrawals */}
       <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
-        <div style={{ color: muted, fontSize: 13, marginBottom: 6 }}>Withdrawals</div>
-        <ModeToggle value={withdrawalMode} onChange={setWithdrawalMode} options={[{ value: "ratio", label: "Ratio" }, { value: "fixed", label: "Fixed values" }]} />
+        <div style={{ color: muted, fontSize: 13, marginBottom: 6 }}>{t("Withdrawals")}</div>
+        <ModeToggle value={withdrawalMode} onChange={setWithdrawalMode} options={[{ value: "ratio", label: t("Ratio") }, { value: "fixed", label: t("Fixed values") }]} />
         {withdrawalMode === "fixed" ? (
           <NumberRow values={withdrawalFixed} onChange={setWithdrawalFixed} />
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
             <input type="number" value={withdrawalStart} onChange={(e) => setWithdrawalStart(e.target.value)}
-              style={{ width: 80, padding: 4 }} placeholder="start" />
+              style={{ width: 80, padding: 4 }} placeholder={t("start")} />
             <input value={withdrawalRatios} onChange={(e) => setWithdrawalRatios(e.target.value)}
               style={{ flex: 1, padding: 4 }} placeholder="1, 1.2, 1.3 ..." />
           </div>
         )}
       </div>
 
+</div>
+
+      <div style={vis(3)}>
       {/* Projects */}
       <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
-        <div style={{ color: muted, fontSize: 13, marginBottom: 8 }}>Projects, cash flows per period</div>
+        <div style={{ color: muted, fontSize: 13, marginBottom: 8 }}>{t("Projects, cash flows per period")}</div>
         {projects.map((p) => (
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             <input
               value={p.name}
-              placeholder={`Project ${String.fromCharCode(65 + projects.indexOf(p))}`}
+              placeholder={`${t("Project")} ${String.fromCharCode(65 + projects.indexOf(p))}`}
               onChange={(e) => setProjects(projects.map((x) => (x.id === p.id ? { ...x, name: e.target.value } : x)))}
               style={{ width: 120, padding: 4, fontWeight: 600, border: `1px solid ${line}`, borderRadius: 4 }}
             />
@@ -639,23 +770,26 @@ export default function VofiToolSimple() {
               onChange={(cf) => setProjects(projects.map((x) => (x.id === p.id ? { ...x, cashflows: cf } : x)))}
             />
             <button type="button" onClick={() => removeProject(p.id)} style={{ color: red, border: "none", background: "none", cursor: "pointer" }}>
-              remove
+              {t("remove")}
             </button>
           </div>
         ))}
         <button type="button" onClick={addProject} style={{ padding: "6px 12px", border: `1px dashed ${gold}`, borderRadius: 6, background: "none", color: gold, cursor: "pointer" }}>
-          + Add project
+          {t("+ Add project")}
         </button>
       </div>
 
+</div>
+
+      <div style={vis(4)}>
       {errors.length > 0 && (
         <div role="alert" style={{ border: `1px solid ${red}`, borderRadius: 8, padding: "10px 14px", marginBottom: 12, background: "#FDF3F2", color: red, fontSize: 14 }}>
-          <strong>Please check your inputs:</strong>
+          <strong>{t("Please check your inputs:")}</strong>
           <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>{errors.map((m) => <li key={m}>{m}</li>)}</ul>
         </div>
       )}
       <button type="button" onClick={calculate} style={{ padding: "10px 20px", background: gold, color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}>
-        Calculate
+        {t("Calculate")}
       </button>
 
       {/* Results */}
@@ -663,14 +797,14 @@ export default function VofiToolSimple() {
         <div style={{ marginTop: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 }}>
             <div style={{ border: `2px solid ${gold}`, borderRadius: 8, padding: 16, flex: 1 }}>
-              <div style={{ fontSize: 13, color: muted, textTransform: "uppercase" }}>{winner.feasible ? "Best alternative" : "No feasible option"}</div>
+              <div style={{ fontSize: 13, color: muted, textTransform: "uppercase" }}>{winner.feasible ? t("Best alternative") : t("No feasible option")}</div>
               {winner.feasible ? (
                 <>
                   <div style={{ fontSize: 20, fontWeight: 700 }}>{winner.name}</div>
-                  <div>Final balance: <strong style={{ color: green }}>{fmt(winner.balance[n - 1])}</strong></div>
+                  <div>{t("Final balance:")} <strong style={{ color: green }}>{fmt(winner.balance[n - 1])}</strong></div>
                 </>
               ) : (
-                <div style={{ color: red }}>Every option goes below the credit limit. See the status column for the lowest balances.</div>
+                <div style={{ color: red }}>{t("Every option goes below the credit limit. See the status column for the lowest balances.")}</div>
               )}
             </div>
             <button
@@ -678,14 +812,14 @@ export default function VofiToolSimple() {
               onClick={showSavePanel}
               style={{ padding: "10px 16px", border: `1px solid ${gold}`, borderRadius: 6, background: "#fff", color: gold, cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap" }}
             >
-              Save results
+              {t("Save results")}
             </button>
           </div>
 
           {reportText !== null && (
             <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
               <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>
-                Tap inside the box, select all, and copy, or use the button below.
+                {t("Tap inside the box, select all, and copy, or use the button below.")}
               </div>
               <textarea
                 readOnly
@@ -699,7 +833,7 @@ export default function VofiToolSimple() {
                 onClick={copyReport}
                 style={{ marginTop: 8, padding: "6px 14px", background: gold, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
               >
-                Copy to clipboard
+                {t("Copy to clipboard")}
               </button>
               {copyMessage && <div style={{ marginTop: 8, fontSize: 13, color: muted }}>{copyMessage}</div>}
             </div>
@@ -709,24 +843,24 @@ export default function VofiToolSimple() {
           <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${line}` }}>
-                <th style={{ textAlign: "left", padding: 8 }}>Option</th>
-                <th style={{ textAlign: "right", padding: 8 }}>Final balance</th>
-                <th style={{ textAlign: "right", padding: 8 }}>vs. Do nothing</th>
-                <th style={{ textAlign: "right", padding: 8 }}>Lowest balance</th>
-                <th style={{ textAlign: "left", padding: 8 }}>Status</th>
+                <th style={{ textAlign: "left", padding: 8 }}>{t("Option")}</th>
+                <th style={{ textAlign: "right", padding: 8 }}>{t("Final balance")}</th>
+                <th style={{ textAlign: "right", padding: 8 }}>{t("vs. Do nothing")}</th>
+                <th style={{ textAlign: "right", padding: 8 }}>{t("Lowest balance")}</th>
+                <th style={{ textAlign: "left", padding: 8 }}>{t("Status")}</th>
               </tr>
             </thead>
             <tbody>
               {ranked.map((r) => (
                 <tr key={r.name} style={{ borderBottom: `1px solid ${line}` }}>
                   <td style={{ padding: 8 }}>{r.name}</td>
-                  <td style={{ padding: 8, textAlign: "right" }}>{r.feasible ? fmt(r.balance[n - 1]) : "n/a"}</td>
+                  <td style={{ padding: 8, textAlign: "right" }}>{r.feasible ? fmt(r.balance[n - 1]) : t("n/a")}</td>
                   <td style={{ padding: 8, textAlign: "right", color: r.baseline || !r.feasible ? muted : r.balance[n - 1] - baseline.balance[n - 1] >= 0 ? green : red }}>
                     {r.baseline || !r.feasible ? "–" : (r.balance[n - 1] - baseline.balance[n - 1] >= 0 ? "+" : "") + fmt(r.balance[n - 1] - baseline.balance[n - 1])}
                   </td>
                   <td style={{ padding: 8, textAlign: "right", color: r.lowestPoint < 0 ? red : ink }}>{fmt(r.lowestPoint)}</td>
                   <td style={{ padding: 8, color: r.feasible ? green : red }}>
-                    {r.feasible ? "feasible" : `credit limit exceeded (${fmt(r.lowestPoint)})`}
+                    {r.feasible ? t("feasible") : `${t("credit limit exceeded")} (${fmt(r.lowestPoint)})`}
                   </td>
                 </tr>
               ))}
@@ -746,15 +880,15 @@ export default function VofiToolSimple() {
                     {r.balance.map((_, i) => <td key={i} style={{ padding: "2px 8px", textAlign: "right", color: muted }}>{i}</td>)}
                   </tr>
                   <tr>
-                    <td style={{ padding: "2px 8px" }}>Cash flow</td>
+                    <td style={{ padding: "2px 8px" }}>{t("Cash flow")}</td>
                     {r.cashflows.map((v, i) => <td key={i} style={{ padding: "2px 8px", textAlign: "right" }}>{fmt(v)}</td>)}
                   </tr>
                   <tr>
-                    <td style={{ padding: "2px 8px" }}>Withdrawal</td>
+                    <td style={{ padding: "2px 8px" }}>{t("Withdrawal")}</td>
                     {results.withdrawals.map((v, i) => <td key={i} style={{ padding: "2px 8px", textAlign: "right" }}>{fmt(v)}</td>)}
                   </tr>
                   <tr>
-                    <td style={{ padding: "2px 8px", fontWeight: 600 }}>Balance</td>
+                    <td style={{ padding: "2px 8px", fontWeight: 600 }}>{t("Balance")}</td>
                     {r.balance.map((v, i) => (
                       <td key={i} style={{ padding: "2px 8px", textAlign: "right", color: v < 0 ? red : green, fontWeight: 600 }}>
                         {fmt(v)}
@@ -768,12 +902,21 @@ export default function VofiToolSimple() {
         </div>
       )}
 
+</div>
+
+            {guided && (
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
+          <button type="button" disabled={step === 1} onClick={() => setStep(step - 1)} style={{ padding: "8px 16px", border: `1px solid ${line}`, borderRadius: 6, background: "#fff", color: step === 1 ? line : ink, cursor: step === 1 ? "default" : "pointer" }}>{t("Back")}</button>
+          {step < 4 && <button type="button" onClick={() => setStep(step + 1)} style={{ padding: "8px 16px", border: "none", borderRadius: 6, background: gold, color: "#fff", fontWeight: 600, cursor: "pointer" }}>{t("Next")}</button>}
+        </div>
+      )}
+
       <footer style={{ marginTop: 40, paddingTop: 16, borderTop: `1px solid ${line}`, fontSize: 13, color: muted, display: "flex", flexWrap: "wrap", gap: "8px 18px", justifyContent: "space-between" }}>
-        <span>Nothing is saved: your inputs exist only on this page and are gone when you close or reload it. Everyone starts with an empty form.</span>
+        <span>{t("Nothing is saved: your inputs exist only on this page and are gone when you close or reload it. Everyone starts with an empty form.")}</span>
         <span style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
           <button type="button" onClick={() => setLegalPage("imprint")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Impressum</button>
           <button type="button" onClick={() => setLegalPage("privacy")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Datenschutz</button>
-          <span>made by Nadin Okil</span>
+          <span>{t("made by Nadin Okil")}</span>
         </span>
       </footer>
       {legalPage && <LegalModal page={legalPage} onClose={() => setLegalPage(null)} />}
