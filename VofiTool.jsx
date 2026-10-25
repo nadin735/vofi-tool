@@ -916,7 +916,7 @@ export default function VofiToolSimple() {
         <span style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
           <button type="button" onClick={() => setLegalPage("imprint")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Impressum</button>
           <button type="button" onClick={() => setLegalPage("privacy")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Datenschutz</button>
-          <span>{t("made by Nadin Okil")}</span>
+          <a href="https://nadin.dev" style={{ color: muted }}>{t("made by Nadin Okil")}</a>
         </span>
       </footer>
       {legalPage && <LegalModal page={legalPage} onClose={() => setLegalPage(null)} />}
