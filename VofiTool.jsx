@@ -214,6 +214,59 @@ function buildReportText(n, ranked, computed, withdrawals) {
   return lines.join("\n");
 }
 
+// Line chart of the account balance per option. Plain SVG, no chart library.
+const SERIES_COLORS = [gold, "#3F6FB0", green, "#8A5BB0", "#C0762B", "#2A8C94"];
+function BalanceChart({ computed, n }) {
+  const W = 720, H = 300, L = 64, R = 16, T = 16, B = 40;
+  const all = computed.flatMap((r) => r.balance);
+  let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+  if (hi === lo) hi = lo + 1;
+  // Round axis steps (1, 2, 5 times a power of ten) instead of arbitrary values.
+  const rough = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((v) => v >= rough);
+  lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+  const x = (t) => L + (n === 1 ? 0 : (t / (n - 1)) * (W - L - R));
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, i) => lo + step * i);
+  let color = 0;
+  const lines = computed.map((r) => ({ r, c: r.baseline ? muted : SERIES_COLORS[color++ % SERIES_COLORS.length] }));
+  const summary = `Account balance over ${n} periods. ` + computed.map((r) => `${r.name}: ${fmt(r.balance[0])} at t0, ${fmt(r.balance[n - 1])} at t${n - 1}`).join("; ") + ".";
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>Account balance over time</div>
+      <div style={{ overflowX: "auto" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} style={{ width: "100%", minWidth: 560, height: "auto", display: "block", border: `1px solid ${line}`, borderRadius: 8, background: "#fff" }}>
+        {ticks.map((v, i) => (
+          <g key={i}>
+            <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke={line} />
+            <text x={L - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill={muted}>{v.toLocaleString("en-US", { maximumFractionDigits: 0 })}</text>
+          </g>
+        ))}
+        <line x1={L} x2={W - R} y1={y(0)} y2={y(0)} stroke={ink} strokeWidth="1" />
+        {Array.from({ length: n }, (_, t) => (
+          <text key={t} x={x(t)} y={H - B + 18} textAnchor="middle" fontSize="11" fill={muted}>{t}</text>
+        ))}
+        <text x={(L + W - R) / 2} y={H - 6} textAnchor="middle" fontSize="11" fill={muted}>Period t</text>
+        {lines.map(({ r, c }) => (
+          <g key={r.name}>
+            <polyline fill="none" stroke={c} strokeWidth={r.baseline ? 1.75 : 2.5} strokeDasharray={r.baseline ? "5 4" : undefined} opacity={r.feasible ? 1 : 0.55} points={r.balance.map((v, t) => `${x(t)},${y(v)}`).join(" ")} />
+            {r.balance.map((v, t) => <circle key={t} cx={x(t)} cy={y(v)} r="3" fill={c} />)}
+          </g>
+        ))}
+      </svg>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 8, fontSize: 13 }}>
+        {lines.map(({ r, c }) => (
+          <span key={r.name} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <svg width="22" height="8" aria-hidden="true"><line x1="0" x2="22" y1="4" y2="4" stroke={c} strokeWidth="3" strokeDasharray={r.baseline ? "5 3" : undefined} /></svg>
+            {r.name}{r.feasible ? "" : " (credit limit exceeded)"}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function NumberRow({ values, onChange }) {
   return (
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -284,6 +337,7 @@ export default function VofiToolSimple() {
   );
 
   const [results, setResults] = useState(null);
+  const [errors, setErrors] = useState([]);
   const [importText, setImportText] = useState("");
   const [importMessage, setImportMessage] = useState("");
   const [reportText, setReportText] = useState(null);
@@ -324,6 +378,7 @@ export default function VofiToolSimple() {
     setWithdrawalRatios(DEFAULTS.withdrawalRatios);
     setProjects(DEFAULTS.projects.map((p) => ({ ...p, cashflows: resize(p.cashflows, DEFAULTS.n) })));
     setResults(null);
+    setErrors([]);
     setImportText("");
     setImportMessage("");
     setReportText(null);
@@ -365,8 +420,15 @@ export default function VofiToolSimple() {
     setN(newN);
     setNInput(String(newN));
     if (found.basePayments) setBasePayments(resize(found.basePayments, newN));
-    if (found.haben) { setHaben(resize(found.haben, newN - 1)); setHabenMode("perPeriod"); }
-    if (found.soll) { setSoll(resize(found.soll, newN - 1)); setSollMode("perPeriod"); }
+    // A single rate in the pasted table is a flat rate for every period.
+    if (found.haben) {
+      if (found.haben.length === 1) { setHabenFlat(found.haben[0]); setHabenMode("flat"); }
+      else { setHaben(resize(found.haben, newN - 1)); setHabenMode("perPeriod"); }
+    }
+    if (found.soll) {
+      if (found.soll.length === 1) { setSollFlat(found.soll[0]); setSollMode("flat"); }
+      else { setSoll(resize(found.soll, newN - 1)); setSollMode("perPeriod"); }
+    }
     if (found.withdrawals) { setWithdrawalFixed(resize(found.withdrawals, newN)); setWithdrawalMode("fixed"); }
     if (found.creditLimit !== null) setCreditLimit(found.creditLimit);
     if (found.projects.length) {
@@ -382,7 +444,24 @@ export default function VofiToolSimple() {
     setImportMessage(parts.length ? `Filled in: ${parts.join(", ")}.` : "No recognizable rows found, check the format above.");
   }
 
+  // Checks the inputs before calculating, so an empty form never shows a "best alternative".
+  function validate() {
+    const problems = [];
+    const blank = (v) => v === "" || v === null || v === undefined || Number.isNaN(Number(v));
+    if (habenMode === "flat" ? blank(habenFlat) : haben.some(blank)) problems.push("Enter the deposit rate" + (habenMode === "flat" ? "" : " for every period") + ". 0 is allowed.");
+    if (sollMode === "flat" ? blank(sollFlat) : soll.some(blank)) problems.push("Enter the borrowing rate" + (sollMode === "flat" ? "" : " for every period") + ". 0 is allowed.");
+    if (withdrawalMode === "ratio" && (blank(withdrawalStart) || withdrawalRatios.trim() === "")) {
+      problems.push("Withdrawals by ratio need a start value and at least one ratio, or switch to fixed values.");
+    }
+    if (creditLimit !== "" && (Number.isNaN(Number(creditLimit)) || Number(creditLimit) < 0)) problems.push("The credit limit must be a number of 0 or more, or empty for unlimited.");
+    if (!projects.some((p) => p.cashflows.some((v) => v !== "" && !Number.isNaN(Number(v))))) problems.push("Enter cash flows for at least one project.");
+    return problems;
+  }
+
   function calculate() {
+    const problems = validate();
+    setErrors(problems);
+    if (problems.length > 0) { setResults(null); setReportText(null); return; }
     let withdrawals;
     if (withdrawalMode === "fixed") {
       withdrawals = withdrawalFixed;
@@ -395,10 +474,11 @@ export default function VofiToolSimple() {
 
     const allOptions = [
       ...projects.map((p, i) => ({ name: p.name.trim() || `Project ${String.fromCharCode(65 + i)}`, cashflows: p.cashflows })),
-      { name: "Do nothing", cashflows: resize([], n) },
+      { name: "Do nothing", cashflows: resize([], n), baseline: true },
     ];
     const computed = allOptions.map((p) => ({
       name: p.name,
+      baseline: !!p.baseline,
       cashflows: p.cashflows,
       ...computeAccountBalance(n, basePayments, withdrawals, p.cashflows, h, s, creditLimit),
     }));
@@ -410,6 +490,7 @@ export default function VofiToolSimple() {
     ? results.computed.slice().sort((a, b) => (b.feasible - a.feasible) || b.balance[n - 1] - a.balance[n - 1])
     : [];
   const winner = ranked[0];
+  const baseline = results ? results.computed.find((r) => r.baseline) : null;
 
   function showSavePanel() {
     setReportText(buildReportText(n, ranked, results.computed, results.withdrawals));
@@ -449,6 +530,15 @@ export default function VofiToolSimple() {
       <p style={{ color: muted, marginTop: 4, marginBottom: 20 }}>
         Compares investment projects under a deposit rate and a borrowing rate, and ranks them by final account balance.
       </p>
+      <details style={{ marginBottom: 20, fontSize: 14, color: ink }}>
+        <summary style={{ cursor: "pointer", color: gold, fontWeight: 600 }}>How it works</summary>
+        <ol style={{ margin: "8px 0 0", paddingLeft: 20, color: muted, lineHeight: 1.6 }}>
+          <li>Enter the time horizon, your base payments, the deposit rate (interest on a positive balance) and the borrowing rate (interest on a negative balance).</li>
+          <li>Add each project's cash flows. Period 0 is usually the investment, so it is negative.</li>
+          <li>Press Calculate. The account is built period by period: the balance of the previous period earns the deposit rate if it is positive and costs the borrowing rate if it is negative. Then the period's payments, cash flows and withdrawals are added.</li>
+          <li>Projects are ranked by final balance. A project that breaks the credit limit is marked as not feasible. "Do nothing" is the reference.</li>
+        </ol>
+      </details>
 
       {/* Import */}
       <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
@@ -500,7 +590,7 @@ export default function VofiToolSimple() {
           <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>Deposit rate in %</div>
           <ModeToggle value={habenMode} onChange={setHabenMode} options={[{ value: "flat", label: "Flat" }, { value: "perPeriod", label: "Per period" }]} />
           {habenMode === "flat" ? (
-            <input type="number" value={habenFlat} onChange={(e) => setHabenFlat(Number(e.target.value))} style={{ width: 80, padding: 4 }} />
+            <input type="number" value={habenFlat} onChange={(e) => setHabenFlat(e.target.value)} style={{ width: 80, padding: 4 }} />
           ) : (
             <NumberRow values={haben} onChange={setHaben} />
           )}
@@ -510,7 +600,7 @@ export default function VofiToolSimple() {
           <div style={{ color: muted, fontSize: 13, marginBottom: 4 }}>Borrowing rate in %</div>
           <ModeToggle value={sollMode} onChange={setSollMode} options={[{ value: "flat", label: "Flat" }, { value: "perPeriod", label: "Per period" }]} />
           {sollMode === "flat" ? (
-            <input type="number" value={sollFlat} onChange={(e) => setSollFlat(Number(e.target.value))} style={{ width: 80, padding: 4 }} />
+            <input type="number" value={sollFlat} onChange={(e) => setSollFlat(e.target.value)} style={{ width: 80, padding: 4 }} />
           ) : (
             <NumberRow values={soll} onChange={setSoll} />
           )}
@@ -558,6 +648,12 @@ export default function VofiToolSimple() {
         </button>
       </div>
 
+      {errors.length > 0 && (
+        <div role="alert" style={{ border: `1px solid ${red}`, borderRadius: 8, padding: "10px 14px", marginBottom: 12, background: "#FDF3F2", color: red, fontSize: 14 }}>
+          <strong>Please check your inputs:</strong>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>{errors.map((m) => <li key={m}>{m}</li>)}</ul>
+        </div>
+      )}
       <button type="button" onClick={calculate} style={{ padding: "10px 20px", background: gold, color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: "pointer" }}>
         Calculate
       </button>
@@ -567,9 +663,15 @@ export default function VofiToolSimple() {
         <div style={{ marginTop: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 }}>
             <div style={{ border: `2px solid ${gold}`, borderRadius: 8, padding: 16, flex: 1 }}>
-              <div style={{ fontSize: 13, color: muted, textTransform: "uppercase" }}>Best alternative</div>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>{winner.name}</div>
-              <div>Final balance: <strong style={{ color: green }}>{fmt(winner.balance[n - 1])}</strong></div>
+              <div style={{ fontSize: 13, color: muted, textTransform: "uppercase" }}>{winner.feasible ? "Best alternative" : "No feasible option"}</div>
+              {winner.feasible ? (
+                <>
+                  <div style={{ fontSize: 20, fontWeight: 700 }}>{winner.name}</div>
+                  <div>Final balance: <strong style={{ color: green }}>{fmt(winner.balance[n - 1])}</strong></div>
+                </>
+              ) : (
+                <div style={{ color: red }}>Every option goes below the credit limit. See the status column for the lowest balances.</div>
+              )}
             </div>
             <button
               type="button"
@@ -603,11 +705,14 @@ export default function VofiToolSimple() {
             </div>
           )}
 
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
+          <div style={{ overflowX: "auto", marginBottom: 20 }}>
+          <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${line}` }}>
                 <th style={{ textAlign: "left", padding: 8 }}>Option</th>
                 <th style={{ textAlign: "right", padding: 8 }}>Final balance</th>
+                <th style={{ textAlign: "right", padding: 8 }}>vs. Do nothing</th>
+                <th style={{ textAlign: "right", padding: 8 }}>Lowest balance</th>
                 <th style={{ textAlign: "left", padding: 8 }}>Status</th>
               </tr>
             </thead>
@@ -616,6 +721,10 @@ export default function VofiToolSimple() {
                 <tr key={r.name} style={{ borderBottom: `1px solid ${line}` }}>
                   <td style={{ padding: 8 }}>{r.name}</td>
                   <td style={{ padding: 8, textAlign: "right" }}>{r.feasible ? fmt(r.balance[n - 1]) : "n/a"}</td>
+                  <td style={{ padding: 8, textAlign: "right", color: r.baseline || !r.feasible ? muted : r.balance[n - 1] - baseline.balance[n - 1] >= 0 ? green : red }}>
+                    {r.baseline || !r.feasible ? "–" : (r.balance[n - 1] - baseline.balance[n - 1] >= 0 ? "+" : "") + fmt(r.balance[n - 1] - baseline.balance[n - 1])}
+                  </td>
+                  <td style={{ padding: 8, textAlign: "right", color: r.lowestPoint < 0 ? red : ink }}>{fmt(r.lowestPoint)}</td>
                   <td style={{ padding: 8, color: r.feasible ? green : red }}>
                     {r.feasible ? "feasible" : `credit limit exceeded (${fmt(r.lowestPoint)})`}
                   </td>
@@ -623,6 +732,9 @@ export default function VofiToolSimple() {
               ))}
             </tbody>
           </table>
+          </div>
+
+          <BalanceChart computed={results.computed} n={n} />
 
           {results.computed.map((r) => (
             <div key={r.name} style={{ marginBottom: 20, overflowX: "auto" }}>
