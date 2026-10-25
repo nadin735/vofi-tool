@@ -46,8 +46,6 @@ const DEMO = {
 // Impressum (§ 5 DDG, § 18 Abs. 1 MStV) and privacy notice, German on purpose.
 const OWNER = {
   name: "Nadin Okil",
-  street: "[Straße und Hausnummer]", // TODO: ladungsfähige Anschrift
-  city: "[PLZ Ort]",
   email: "nadinokil.contact@gmail.com",
 };
 
@@ -66,7 +64,7 @@ function LegalModal({ page, onClose }) {
           <>
             <h2 style={{ marginTop: 0, fontSize: 20 }}>Impressum</h2>
             <p>Angaben gemäß § 5 DDG und § 18 Abs. 1 MStV</p>
-            <p>{OWNER.name}<br />{OWNER.street}<br />{OWNER.city}</p>
+            <p>{OWNER.name}</p>
             <p>E-Mail: <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a></p>
             <p>Privates, nicht-kommerzielles Projekt ohne Werbung, Einnahmen oder Benutzerkonten. Berechnungen ohne Gewähr.</p>
           </>
@@ -74,7 +72,7 @@ function LegalModal({ page, onClose }) {
           <>
             <h2 style={{ marginTop: 0, fontSize: 20 }}>Datenschutzerklärung</h2>
             <h3 style={h}>Verantwortlich</h3>
-            <p>{OWNER.name}, {OWNER.street}, {OWNER.city}, {OWNER.email}</p>
+            <p>{OWNER.name}, {OWNER.email}</p>
             <h3 style={h}>Hosting</h3>
             <p>Die Seite wird von Vercel Inc. (340 S Lemon Ave #4133, Walnut, CA 91789, USA) ausgeliefert. Dabei verarbeitet Vercel technisch notwendige Daten (IP-Adresse, Zeitpunkt, angeforderte Datei, Browser-Kennung) in Server-Logs (Art. 6 Abs. 1 lit. f DSGVO). Vercel ist unter dem EU-US Data Privacy Framework zertifiziert.</p>
             <h3 style={h}>Ihre Eingaben</h3>
@@ -916,7 +914,6 @@ export default function VofiToolSimple() {
         <span style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
           <button type="button" onClick={() => setLegalPage("imprint")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Impressum</button>
           <button type="button" onClick={() => setLegalPage("privacy")} style={{ background: "none", border: "none", padding: 0, color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 13 }}>Datenschutz</button>
-          <a href="https://nadin.dev" style={{ color: muted }}>{t("made by Nadin Okil")}</a>
         </span>
       </footer>
       {legalPage && <LegalModal page={legalPage} onClose={() => setLegalPage(null)} />}
