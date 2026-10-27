@@ -10,6 +10,12 @@ For each project, and for a "do nothing" alternative, it builds the account bala
 
 Standard NPV or IRR calculations assume a single discount rate. VOFI is more realistic once deposit and borrowing rates diverge, which is common in practice and central to how this topic is taught in German finance courses (see Grob, Kruschwitz).
 
+## Importing real data
+
+Besides pasting text, the tool reads a PDF with a text layer, a scanned PDF, a photo of a table (PNG, JPG), CSV or TXT. Scans are read with text recognition (tesseract.js, German and English). Everything happens in the browser tab, the file is never uploaded. The recognised text appears in the box so every number can be checked before it is applied. Results can be copied, downloaded as CSV (semicolon separated, opens in Excel) or printed and saved as PDF.
+
+The recognition files (worker, wasm, language data, PDF worker) live in `public/ocr` and are served from the same origin, so the Content-Security-Policy needs no third party host.
+
 ## Run it
 
 ```

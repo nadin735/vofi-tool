@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { readFileAsText } from "./fileImport.js";
 
 // Colors
 const gold = "#A9832A";
@@ -157,7 +158,8 @@ function parseImportText(text) {
       found.creditLimit = String(numbers[0]);
       continue;
     }
-    // Anything else with a label and numbers is treated as a project row
+    // Anything else with a label and at least two numbers is treated as a project row
+    if (numbers.length < 2) continue;
     found.projects.push({ id: Date.now() + Math.random(), name: label || `Project ${found.projects.length + 1}`, cashflows: numbers });
   }
   return found;
@@ -200,6 +202,18 @@ const DE = {
  ": one step at a time": ": ein Schritt nach dem anderen",
  "Paste a table copied from a PDF or worksheet, one row per line, label first, then the numbers. Format:": "Fügen Sie eine aus PDF oder Tabelle kopierte Tabelle ein, eine Zeile pro Eintrag, zuerst die Bezeichnung, dann die Zahlen. Format:",
  "Fill in from text": "Aus Text übernehmen",
+ "Download CSV": "CSV herunterladen",
+ "Print or save as PDF": "Drucken oder als PDF speichern",
+ "Or read a file": "Oder eine Datei einlesen",
+ "Choose PDF, scan, photo or CSV": "PDF, Scan, Foto oder CSV wählen",
+ "PDF with text, scanned PDF, photo of a table, CSV or TXT. Reading and text recognition run in this browser tab. The file is not uploaded.": "PDF mit Text, gescanntes PDF, Foto einer Tabelle, CSV oder TXT. Einlesen und Texterkennung laufen in diesem Browser-Tab. Die Datei wird nicht hochgeladen.",
+ "Reading file": "Datei wird gelesen",
+ "Recognising text in the scan": "Text im Scan wird erkannt",
+ "Text read from the file. Check the numbers below, correct them if needed, then press \"Fill in from text\".": "Text aus der Datei gelesen. Zahlen unten prüfen, bei Bedarf korrigieren und dann \"Aus Text übernehmen\" drücken.",
+ "Text read with text recognition. Scans can contain misread digits, so check every number.": "Text per Texterkennung gelesen. Scans können falsch gelesene Ziffern enthalten, bitte jede Zahl prüfen.",
+ "No text found in this file.": "In dieser Datei wurde kein Text gefunden.",
+ "This file type is not supported. Use PDF, PNG, JPG, CSV or TXT.": "Dieser Dateityp wird nicht unterstützt. Nutzen Sie PDF, PNG, JPG, CSV oder TXT.",
+ "The file could not be read.": "Die Datei konnte nicht gelesen werden.",
  "Time horizon (periods)": "Zeithorizont (Perioden)",
  "Credit limit (leave empty for unlimited)": "Kreditlimit (leer lassen für unbegrenzt)",
  "Base payments per period": "Basiszahlungen pro Periode",
@@ -501,6 +515,44 @@ export default function VofiToolSimple() {
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
+  const fileRef = useRef(null);
+  async function handleFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportMessage(t("Reading file") + " ...");
+    try {
+      const { text, method } = await readFileAsText(file, {
+        lang: LANG === "de" ? "deu+eng" : "eng+deu",
+        onProgress: (kind, p) => setImportMessage(`${kind === "read" ? t("Reading file") : t("Recognising text in the scan")} ... ${Math.round(p * 100)} %`),
+      });
+      if (!text) { setImportMessage(t("No text found in this file.")); return; }
+      setImportText(text);
+      setImportMessage(method === "ocr" ? t("Text read with text recognition. Scans can contain misread digits, so check every number.") : t("Text read from the file. Check the numbers below, correct them if needed, then press \"Fill in from text\"."));
+    } catch (err) {
+      setImportMessage(err && err.message === "unsupported" ? t("This file type is not supported. Use PDF, PNG, JPG, CSV or TXT.") : t("The file could not be read."));
+    }
+  }
+
+  function downloadCsv() {
+    if (!results) return;
+    const n2 = results.computed[0] ? results.computed[0].balance.length : n;
+    const esc = (x) => `"${String(x).replace(/"/g, '""')}"`;
+    const num = (x) => (LANG === "de" ? String(x).replace(".", ",") : String(x));
+    const rows = [["", ...Array.from({ length: n2 }, (_, i) => `t=${i}`)]];
+    results.computed.forEach((r) => {
+      rows.push([r.name, ...Array(n2).fill("")]);
+      rows.push([t("Cash flow"), ...r.cashflows.map((c) => num(Number(c) || 0))]);
+      rows.push([t("Withdrawal"), ...results.withdrawals.map((c) => num(Number(c) || 0))]);
+      rows.push([t("Balance"), ...r.balance.map((c) => num(Math.round(c * 100) / 100))]);
+    });
+    const csv = "\ufeff" + rows.map((r) => r.map(esc).join(";")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "vofi-results.csv"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function runImport() {
     const found = parseImportText(importText);
     const newN = Math.max(
@@ -664,12 +716,19 @@ export default function VofiToolSimple() {
 
 <div style={vis(1)}>
       {/* Import */}
-      <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
+      <div className="no-print" style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
         <div style={{ color: muted, fontSize: 13, marginBottom: 6 }}>
           {t("Paste a table copied from a PDF or worksheet, one row per line, label first, then the numbers. Format:")}
         </div>
         <div style={{ fontSize: 12, color: muted, marginBottom: 8, fontFamily: "ui-monospace, monospace", whiteSpace: "pre-line" }}>
           {exampleText()}
+        </div>
+        <div style={{ margin: "0 0 10px" }}>
+          <input ref={fileRef} type="file" accept=".pdf,.csv,.tsv,.txt,image/*" onChange={handleFile} style={{ display: "none" }} aria-label={t("Choose PDF, scan, photo or CSV")} />
+          <button type="button" onClick={() => fileRef.current && fileRef.current.click()} style={{ padding: "6px 14px", background: "#fff", color: gold, border: `1px solid ${gold}`, borderRadius: 6, cursor: "pointer" }}>
+            {t("Choose PDF, scan, photo or CSV")}
+          </button>
+          <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>{t("PDF with text, scanned PDF, photo of a table, CSV or TXT. Reading and text recognition run in this browser tab. The file is not uploaded.")}</div>
         </div>
         <textarea
           value={importText}
@@ -689,7 +748,7 @@ export default function VofiToolSimple() {
       </div>
 
       {/* Settings */}
-      <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
+      <div className="no-print" style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           <label>
             {t("Time horizon (periods)")}
@@ -815,7 +874,7 @@ export default function VofiToolSimple() {
           </div>
 
           {reportText !== null && (
-            <div style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
+            <div className="no-print" style={{ border: `1px solid ${line}`, borderRadius: 8, padding: 16, marginBottom: 20, background: "#FCFAF4" }}>
               <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>
                 {t("Tap inside the box, select all, and copy, or use the button below.")}
               </div>
@@ -826,6 +885,20 @@ export default function VofiToolSimple() {
                 onFocus={(e) => e.target.select()}
                 style={{ width: "100%", padding: 8, border: `1px solid ${line}`, borderRadius: 6, fontFamily: "ui-monospace, monospace", fontSize: 12 }}
               />
+              <button
+                type="button"
+                onClick={downloadCsv}
+                style={{ marginTop: 8, marginRight: 8, padding: "6px 14px", background: "#fff", color: gold, border: `1px solid ${gold}`, borderRadius: 6, cursor: "pointer" }}
+              >
+                {t("Download CSV")}
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                style={{ marginTop: 8, marginRight: 8, padding: "6px 14px", background: "#fff", color: gold, border: `1px solid ${gold}`, borderRadius: 6, cursor: "pointer" }}
+              >
+                {t("Print or save as PDF")}
+              </button>
               <button
                 type="button"
                 onClick={copyReport}
